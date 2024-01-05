@@ -74,7 +74,6 @@ func (mq *MessageQueue) Notify(sigNo syscall.Signal) error {
 // Close closes the message queue.
 func (mq *MessageQueue) Close() error {
 	mq.recvBuf.free()
-
 	_, err := mq_close(mq.handler)
 	return err
 }
