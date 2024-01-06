@@ -18,7 +18,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/joe-at-startupmedia/posix_mq/src/posix_mq"
+	"posix_mq"
 )
 
 const maxTickNum = 10
@@ -55,7 +55,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/joe-at-startupmedia/posix_mq/src/posix_mq"
+	"posix_mq/src/posix_mq"
 )
 
 const maxTickNum = 10

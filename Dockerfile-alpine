@@ -5,4 +5,4 @@ ADD . /go/src/github.com/joe-at-startupmedia/posix_mq
 
 RUN apk --update add build-base
 
-RUN make build
+RUN make

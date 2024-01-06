@@ -2,14 +2,20 @@ GO ?= go
 GOFMT ?= gofmt "-s"
 GOFILES := $(shell find . -name "*.go")
 
+all: build test
+
 .PHONY: docker
 docker:
 	docker build -f Dockerfile-alpine -t posix_mq_alpine .
 
 .PHONY: build
-build:
-	go build -o bin/exec_sender example/exec/sender/main.go
-	go build -o bin/exec_receiver example/exec/receiver/main.go
+
+build: build_simplex build_duplex
+
+.PHONY: build_simplex
+build_simplex:
+	go build -o bin/simplex_sender example/simplex/sender/main.go
+	go build -o bin/simplex_receiver example/simplex/receiver/main.go
 
 .PHONY: build_duplex
 build_duplex:
@@ -17,12 +23,12 @@ build_duplex:
 	go build -o bin/duplex_responder example/duplex/responder/main.go
 
 .PHONY: test
-test: test_exec test_duplex
+test: test_simplex test_duplex
 
-.PHONY: test_exec
-test_exec:
-	./bin/exec_sender &
-	./bin/exec_receiver
+.PHONY: test_simplex
+test_simplex:
+	./bin/simplex_sender &
+	./bin/simplex_receiver
 
 .PHONY: test_duplex
 test_duplex:

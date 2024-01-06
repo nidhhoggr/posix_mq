@@ -3,40 +3,39 @@ package main
 import (
 	"fmt"
 	"log"
-	"time"
 
-	"github.com/joe-at-startupmedia/posix_mq"
+	"posix_mq"
 )
 
-const maxSendTickNum = 10
+const maxRecvTickNum = 10
 
 func main() {
-	oflag := posix_mq.O_WRONLY | posix_mq.O_CREAT
+	oflag := posix_mq.O_RDONLY
 	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer func(mq *posix_mq.MessageQueue) {
-		err := mq.Close()
+		err := mq.Unlink()
 		if err != nil {
 			log.Println(err)
 		}
 	}(mq)
 
+	fmt.Println("Start receiving messages")
+
 	count := 0
 	for {
 		count++
-		err = mq.Send([]byte(fmt.Sprintf("Hello, World : %d\n", count)), 0)
+
+		msg, _, err := mq.Receive()
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println(string(msg))
 
-		fmt.Println("Sent a new message")
-
-		if count >= maxSendTickNum {
+		if count >= maxRecvTickNum {
 			break
 		}
-
-		time.Sleep(1 * time.Second)
 	}
 }
