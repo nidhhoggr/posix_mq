@@ -12,7 +12,7 @@ var (
 	mqResp *posix_mq.MessageQueue
 )
 
-func Responder(mqFile string, mqDir string, owner posix_mq.Ownership) error {
+func New(mqFile string, mqDir string, owner posix_mq.Ownership) error {
 	sender, err := openQueue(mqFile+"_send", mqDir, owner)
 	if err != nil {
 		return err
