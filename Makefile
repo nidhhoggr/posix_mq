@@ -1,3 +1,7 @@
+GO ?= go
+GOFMT ?= gofmt "-s"
+GOFILES := $(shell find . -name "*.go")
+
 .PHONY: docker
 docker:
 	docker build -f Dockerfile-alpine -t posix_mq_alpine .
@@ -24,3 +28,16 @@ test_exec:
 test_duplex:
 	./bin/duplex_responder &
 	./bin/duplex_sender
+
+.PHONY: fmt
+fmt:
+	$(GOFMT) -w $(GOFILES)
+
+.PHONY: fmt-check
+fmt-check:
+	@diff=$$($(GOFMT) -d $(GOFILES)); \
+  if [ -n "$$diff" ]; then \
+    echo "Please run 'make fmt' and commit the result:"; \
+    echo "$${diff}"; \
+    exit 1; \
+  fi;

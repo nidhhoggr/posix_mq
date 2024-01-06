@@ -1,3 +1,3 @@
-module github.com/joe-at-startupmedia/posix_mq
+module posix_mq
 
 go 1.21
