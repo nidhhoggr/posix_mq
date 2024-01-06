@@ -3,7 +3,7 @@ package responder
 import (
 	"errors"
 	"fmt"
-	"posix_mq"
+	"github.com/joe-at-startupmedia/posix_mq"
 	"syscall"
 )
 
