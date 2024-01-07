@@ -4,10 +4,6 @@ GOFILES := $(shell find . -name "*.go")
 
 all: build test
 
-.PHONY: docker
-docker:
-	docker build -f Dockerfile-alpine -t posix_mq_alpine .
-
 .PHONY: build
 
 build: build_simplex build_bidirectional build_duplex
