@@ -19,6 +19,8 @@ type MessageQueueAttribute struct {
 	MsgSize int
 }
 
+const POSIX_MQ_DIR = "/dev/mqueue/"
+
 // NewMessageQueue returns an instance of the message queue given a QueueConfig.
 func NewMessageQueue(name string, oflag int, mode int, attr *MessageQueueAttribute) (*MessageQueue, error) {
 	h, err := mq_open(name, oflag, mode, attr)

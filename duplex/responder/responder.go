@@ -14,31 +14,33 @@ var (
 	mqResp *posix_mq.MessageQueue
 )
 
-func New(mqFile string, mqDir string, owner posix_mq.Ownership) error {
-	sender, err := openQueue(mqFile+"_send", mqDir, owner)
+func New(mqFile string, mqDir string, owner posix_mq.Ownership, flags int) error {
+	sender, err := openQueue(mqFile+"_send", mqDir, owner, flags)
 	if err != nil {
 		return err
 	}
 	mqSend = sender
 
-	responder, err := openQueue(mqFile+"_resp", mqDir, owner)
+	responder, err := openQueue(mqFile+"_resp", mqDir, owner, flags)
 	mqResp = responder
 
 	return err
 }
 
-func openQueue(mqFile string, mqDir string, owner posix_mq.Ownership) (*posix_mq.MessageQueue, error) {
+func openQueue(mqFile string, mqDir string, owner posix_mq.Ownership, flags int) (*posix_mq.MessageQueue, error) {
 	//mq_open checks that the name starts with a slash (/), giving the EINVAL error if it does not
-	oflag := posix_mq.O_RDWR | posix_mq.O_CREAT | posix_mq.O_NONBLOCK
+	if flags == 0 {
+		flags = posix_mq.O_RDWR | posix_mq.O_CREAT | posix_mq.O_NONBLOCK
+	}
 	var (
 		messageQueue *posix_mq.MessageQueue
 		err          error
 	)
 	if owner.IsValid() {
-		messageQueue, err = posix_mq.NewMessageQueue("/"+mqFile, oflag, 0660, nil)
+		messageQueue, err = posix_mq.NewMessageQueue("/"+mqFile, flags, 0660, nil)
 
 	} else {
-		messageQueue, err = posix_mq.NewMessageQueue("/"+mqFile, oflag, 0666, nil)
+		messageQueue, err = posix_mq.NewMessageQueue("/"+mqFile, flags, 0666, nil)
 	}
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Could not create message queue %s: %-v", "/"+mqFile, err))

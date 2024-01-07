@@ -2,66 +2,41 @@ package main
 
 import (
 	"fmt"
+	"github.com/joe-at-startupmedia/posix_mq"
+	pmq_responder "github.com/joe-at-startupmedia/posix_mq/duplex/responder"
 	"log"
 	"time"
-
-	"github.com/joe-at-startupmedia/posix_mq"
 )
 
 const maxSendTickNum = 10
 
-var (
-	mq_send *posix_mq.MessageQueue
-	mq_resp *posix_mq.MessageQueue
-)
-
-func openQueue(postfix string) *posix_mq.MessageQueue {
-	oflag := posix_mq.O_RDWR | posix_mq.O_CREAT
-	posixMQFile := "posix_mq_example_" + postfix
-	msgQueue, err := posix_mq.NewMessageQueue("/"+posixMQFile, oflag, 0666, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return msgQueue
-}
-
-func closeQueue(mq *posix_mq.MessageQueue) {
-	err := mq.Unlink()
-	if err != nil {
-		log.Println(err)
-	}
+func handleMessage(request []byte) (processed []byte, err error) {
+	return []byte(fmt.Sprintf("I recieved request: %s\n", request)), nil
 }
 
 func main() {
-	mq_send = openQueue("send")
-	mq_resp = openQueue("resp")
+	flags := posix_mq.O_RDWR | posix_mq.O_CREAT
+	err := pmq_responder.New("posix_mq_example_duplex", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{}, flags)
+	if err != nil {
+		log.Fatal("Responder: could not initialize: ", err)
+	}
+
+	defer pmq_responder.Close()
 
 	count := 0
 	for {
+		time.Sleep(1 * time.Second)
 		count++
-		msg, _, err := mq_send.Receive()
+		err := pmq_responder.HandleRequest(handleMessage)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("Receieved a new message from sender: %s\n", msg)
-
-		mq_resp.Send([]byte(fmt.Sprintf("Farewell, World : %d\n", count)), 0)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Println("Sent a response")
+		fmt.Println("Responder: Sent a response")
 
 		if count >= maxSendTickNum {
 			break
 		}
-
-		time.Sleep(1 * time.Second)
 	}
 
-	defer func(mq_send *posix_mq.MessageQueue, mq_resp *posix_mq.MessageQueue) {
-		closeQueue(mq_send)
-		closeQueue(mq_resp)
-	}(mq_send, mq_resp)
 }
