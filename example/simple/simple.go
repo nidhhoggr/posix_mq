@@ -1,18 +1,8 @@
-# posix_mq
-
-a Go wrapper and utility for POSIX Message Queues
-
-posix_mq is a Go wrapper for POSIX Message Queues. It's important you read [the manual for POSIX Message Queues](http://man7.org/linux/man-pages/man7/mq_overview.7.html), ms_send(2) and mq_receive(2) before using this library. posix_mq is a very light wrapper, and will not hide any errors from you.
-
-## Example
-
-#### Sender
-
-```go
 package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/joe-at-startupmedia/posix_mq"
@@ -21,14 +11,26 @@ import (
 const maxSendTickNum = 10
 
 func main() {
+	send_c := make(chan int)
+	go sender(send_c)
+	//wait for the sender to create the posix_mq files
+	time.Sleep(1 * time.Second)
+	recv_c := make(chan int)
+	go receiver(recv_c)
+	<-recv_c
+	<-send_c
+}
+
+func sender(c chan int) {
 	oflag := posix_mq.O_WRONLY | posix_mq.O_CREAT
 	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
 	if err != nil {
 		fmt.Printf("Sender: error initializing %s", err)
-		return
+		c <- 1
 	}
 	defer func() {
 		fmt.Println("Sender: finished")
+		c <- 0
 	}()
 
 	count := 0
@@ -49,35 +51,18 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 }
-```
 
-#### Receiver
-
-```go
-package main
-
-import (
-	"fmt"
-	"log"
-
-	"github.com/joe-at-startupmedia/posix_mq"
-)
-
-const maxSendTickNum = 10
-
-func main() {
+func receiver(c chan int) {
 	oflag := posix_mq.O_RDONLY
 	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
 	if err != nil {
 		fmt.Printf("Receiver: error initializing %s", err)
-		return
+		c <- 1
 	}
 	defer func() {
-		err := mq.Unlink()
-		if err != nil {
-			log.Println(err)
-		}
+		closeQueue(mq)
 		fmt.Println("Receiver: finished")
+		c <- 0
 	}()
 
 	fmt.Println("Receiver: Start receiving messages")
@@ -97,8 +82,10 @@ func main() {
 		}
 	}
 }
-```
 
-## Acknowledgement
-
-It's inspired by [Shopify/sysv_mq](https://github.com/Shopify/sysv_mq)
+func closeQueue(mq *posix_mq.MessageQueue) {
+	err := mq.Unlink()
+	if err != nil {
+		log.Println(err)
+	}
+}
