@@ -74,7 +74,9 @@ func receiver(c chan int) {
 		msg, _, err := mq.Receive()
 		if err != nil {
 			fmt.Printf("Receiver: error getting message: %s\n", err)
+			continue
 		}
+		
 		fmt.Printf("Receiver: got new message: %s\n", string(msg))
 
 		if count >= maxSendTickNum {

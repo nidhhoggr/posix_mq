@@ -13,6 +13,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/joe-at-startupmedia/posix_mq"
@@ -24,12 +25,8 @@ func main() {
 	oflag := posix_mq.O_WRONLY | posix_mq.O_CREAT
 	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
 	if err != nil {
-		fmt.Printf("Sender: error initializing %s", err)
-		return
+		log.Fatalf("Sender: error initializing %s", err)
 	}
-	defer func() {
-		fmt.Println("Sender: finished")
-	}()
 
 	count := 0
 	for {
@@ -48,6 +45,7 @@ func main() {
 
 		time.Sleep(1 * time.Second)
 	}
+	fmt.Println("Sender: finished")
 }
 ```
 
@@ -69,8 +67,7 @@ func main() {
 	oflag := posix_mq.O_RDONLY
 	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
 	if err != nil {
-		fmt.Printf("Receiver: error initializing %s", err)
-		return
+		log.Fatalf("Receiver: error initializing %s", err)
 	}
 	defer func() {
 		err := mq.Unlink()
@@ -89,7 +86,9 @@ func main() {
 		msg, _, err := mq.Receive()
 		if err != nil {
 			fmt.Printf("Receiver: error getting message: %s\n", err)
+			continue
 		}
+		
 		fmt.Printf("Receiver: got new message: %s\n", string(msg))
 
 		if count >= maxSendTickNum {
