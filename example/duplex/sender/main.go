@@ -22,7 +22,7 @@ func main() {
 	for {
 		count++
 		request := fmt.Sprintf("Hello, World : %d\n", count)
-		err := pmq_sender.SendCmd([]byte(request), 0)
+		err := pmq_sender.Send([]byte(request), 0)
 		if err != nil {
 			log.Fatal(err)
 		}

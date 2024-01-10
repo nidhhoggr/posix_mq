@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/joe-at-startupmedia/posix_mq"
 	"syscall"
+	"time"
 )
 
 type ResponderCallback func(msq []byte) (processed []byte, err error)
@@ -53,9 +54,17 @@ func openQueue(mqFile string, mqDir string, owner posix_mq.Ownership, flags int)
 }
 
 func HandleRequest(msgHandler ResponderCallback) error {
+	return handleRequest(msgHandler, 0)
+}
+
+func HandleRequestWithLag(msgHandler ResponderCallback, lag int) error {
+	return handleRequest(msgHandler, lag)
+}
+
+func handleRequest(msgHandler ResponderCallback, lag int) error {
 	msg, _, err := mqSend.Receive()
 	if err != nil {
-		//EAGAIN simply means the queue is empty
+		//EAGAIN simply means the queue is empty when O_NONBLOCK is set
 		if errors.Is(err, syscall.EAGAIN) {
 			return nil
 		}
@@ -65,6 +74,11 @@ func HandleRequest(msgHandler ResponderCallback) error {
 	if err != nil {
 		return err
 	}
+
+	if lag > 0 {
+		time.Sleep(time.Duration(lag) * time.Second)
+	}
+
 	err = mqResp.Send(processed, 0)
 	return err
 }

@@ -44,7 +44,7 @@ func openQueue(mqFile string, mqDir string, owner posix_mq.Ownership) (*posix_mq
 	return messageQueue, nil
 }
 
-func SendCmd(data []byte, priority uint) error {
+func Send(data []byte, priority uint) error {
 	return mqSend.Send(data, priority)
 }
 
