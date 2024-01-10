@@ -76,7 +76,7 @@ func receiver(c chan int) {
 			fmt.Printf("Receiver: error getting message: %s\n", err)
 			continue
 		}
-		
+
 		fmt.Printf("Receiver: got new message: %s\n", string(msg))
 
 		if count >= maxSendTickNum {
@@ -86,8 +86,7 @@ func receiver(c chan int) {
 }
 
 func closeQueue(mq *posix_mq.MessageQueue) {
-	err := mq.Unlink()
-	if err != nil {
+	if err := mq.Unlink(); err != nil {
 		log.Println(err)
 	}
 }

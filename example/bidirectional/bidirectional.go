@@ -46,8 +46,7 @@ func responder(c chan int) {
 
 		fmt.Printf("Responder: got new message from sender: %s\n", msg)
 
-		mqResp.Send([]byte(fmt.Sprintf("Farewell, World : %d\n", count)), 0)
-		if err != nil {
+		if err := mqResp.Send([]byte(fmt.Sprintf("Farewell, World : %d\n", count)), 0); err != nil {
 			fmt.Printf("Responder: errorsending responde: %s\n", err)
 			continue
 		}
@@ -76,8 +75,7 @@ func sender(c chan int) {
 	count := 0
 	for {
 		count++
-		err := mqSend.Send([]byte(fmt.Sprintf("Hello, World : %d\n", count)), 0)
-		if err != nil {
+		if err := mqSend.Send([]byte(fmt.Sprintf("Hello, World : %d\n", count)), 0); err != nil {
 			fmt.Printf("Sender: error sending message: %s\n", err)
 			continue
 		}
@@ -122,8 +120,7 @@ func openQueue(postfix string) (*posix_mq.MessageQueue, error) {
 }
 
 func closeQueue(mq *posix_mq.MessageQueue) {
-	err := mq.Unlink()
-	if err != nil {
+	if err := mq.Unlink(); err != nil {
 		log.Println(err)
 	}
 }

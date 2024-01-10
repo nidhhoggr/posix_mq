@@ -26,8 +26,7 @@ func main() {
 
 func responder(c chan int) {
 	flags := posix_mq.O_RDWR | posix_mq.O_CREAT
-	err := pmq_responder.New("posix_mq_example_duplex_lag", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{}, flags)
-	if err != nil {
+	if err := pmq_responder.New("posix_mq_example_duplex_lag", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{}, flags); err != nil {
 		log.Printf("Responder: could not initialize: %s", err)
 		c <- 1
 	}
@@ -62,8 +61,7 @@ func responder(c chan int) {
 }
 
 func sender(c chan int) {
-	err := pmq_sender.New("posix_mq_example_duplex_lag", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{})
-	if err != nil {
+	if err := pmq_sender.New("posix_mq_example_duplex_lag", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{}); err != nil {
 		log.Printf("Sender: could not initialize: %s", err)
 		c <- 1
 	}
@@ -98,8 +96,7 @@ func sender(c chan int) {
 }
 
 func requestResponse(msg string, c chan pmqResponse) {
-	err := pmq_sender.Send([]byte(msg), 0)
-	if err != nil {
+	if err := pmq_sender.Send([]byte(msg), 0); err != nil {
 		c <- pmqResponse{fmt.Sprintf("%s", err), false}
 		return
 	}

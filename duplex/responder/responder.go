@@ -88,10 +88,8 @@ func closeQueue(mq *posix_mq.MessageQueue) error {
 }
 
 func Close() error {
-	err := closeQueue(mqSend)
-	if err != nil {
+	if err := closeQueue(mqSend); err != nil {
 		return err
 	}
-	err = closeQueue(mqResp)
-	return err
+	return closeQueue(mqResp)
 }

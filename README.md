@@ -31,8 +31,7 @@ func main() {
 	count := 0
 	for {
 		count++
-		err = mq.Send([]byte(fmt.Sprintf("Hello, World : %d\n", count)), 0)
-		if err != nil {
+		if err = mq.Send([]byte(fmt.Sprintf("Hello, World : %d\n", count)), 0); err != nil {
 			fmt.Printf("Sender: error sending message: %s\n", err)
 			continue
 		}
@@ -70,8 +69,7 @@ func main() {
 		log.Fatalf("Receiver: error initializing %s", err)
 	}
 	defer func() {
-		err := mq.Unlink()
-		if err != nil {
+		if err := mq.Unlink(); err != nil {
 			log.Println(err)
 		}
 		fmt.Println("Receiver: finished")

@@ -82,12 +82,9 @@ func (mq *MessageQueue) Close() error {
 
 // Unlink deletes the message queue.
 func (mq *MessageQueue) Unlink() error {
-	err := mq.Close()
-	if err != nil {
+	if err := mq.Close(); err != nil {
 		return err
 	}
-
-	_, err = mq_unlink(mq.name)
-
+	_, err := mq_unlink(mq.name)
 	return err
 }
