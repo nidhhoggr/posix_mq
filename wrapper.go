@@ -77,8 +77,9 @@ func mq_open(name string, oflag int, mode int, attr *MessageQueueAttribute) (int
 			mq_curmsgs: C.long(attr.MsgCnt),
 		}
 	}
-
-	h, err := C.mq_open4(C.CString(name), C.int(oflag), C.int(mode), cAttr)
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	h, err := C.mq_open4(cName, C.int(oflag), C.int(mode), cAttr)
 	if h == -1 {
 		return 0, err
 	}
@@ -88,7 +89,9 @@ func mq_open(name string, oflag int, mode int, attr *MessageQueueAttribute) (int
 
 func mq_send(h int, data []byte, priority uint) error {
 	byteStr := *(*string)(unsafe.Pointer(&data))
-	rv, err := C.mq_send(C.int(h), C.CString(byteStr), C.size_t(len(data)), C.uint(priority))
+	cStr := C.CString(byteStr)
+	defer C.free(unsafe.Pointer(cStr))
+	rv, err := C.mq_send(C.int(h), cStr, C.size_t(len(data)), C.uint(priority))
 	if rv == -1 {
 		return err
 	}
@@ -100,7 +103,9 @@ func mq_timedsend(h int, data []byte, priority uint, t time.Time) error {
 	timeSpec := timeToTimespec(t)
 
 	byteStr := *(*string)(unsafe.Pointer(&data))
-	rv, err := C.mq_timedsend(C.int(h), C.CString(byteStr), C.size_t(len(data)), C.uint(priority), &timeSpec)
+	cStr := C.CString(byteStr)
+	defer C.free(unsafe.Pointer(cStr))
+	rv, err := C.mq_timedsend(C.int(h), cStr, C.size_t(len(data)), C.uint(priority), &timeSpec)
 	if rv == -1 {
 		return err
 	}
@@ -157,7 +162,9 @@ func mq_close(h int) error {
 }
 
 func mq_unlink(name string) error {
-	rv, err := C.mq_unlink(C.CString(name))
+	cStr := C.CString(name)
+	defer C.free(unsafe.Pointer(cStr))
+	rv, err := C.mq_unlink(cStr)
 	if rv == -1 {
 		return err
 	}
