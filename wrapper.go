@@ -74,6 +74,7 @@ func mq_open(name string, oflag int, mode int, attr *MessageQueueAttribute) (int
 			mq_flags:   C.long(attr.Flags),
 			mq_maxmsg:  C.long(attr.MaxMsg),
 			mq_msgsize: C.long(attr.MsgSize),
+			mq_curmsgs: C.long(attr.MsgCnt),
 		}
 	}
 
@@ -142,4 +143,20 @@ func mq_close(h int) (int, error) {
 func mq_unlink(name string) (int, error) {
 	rv, err := C.mq_unlink(C.CString(name))
 	return int(rv), err
+}
+
+func mq_getattr(h int) (*MessageQueueAttribute, error) {
+	var cAttr C.struct_mq_attr
+	ret := C.mq_getattr(C.int(h), &cAttr)
+	mqa := &MessageQueueAttribute{
+		Flags:   int(cAttr.mq_flags),
+		MaxMsg:  int(cAttr.mq_maxmsg),
+		MsgSize: int(cAttr.mq_msgsize),
+		MsgCnt:  int(cAttr.mq_curmsgs),
+	}
+	var err error
+	if ret != 0 {
+		err = fmt.Errorf("got non-zero return value: %d", ret)
+	}
+	return mqa, err
 }

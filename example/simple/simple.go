@@ -22,10 +22,13 @@ func main() {
 }
 
 func sender(c chan int) {
-	oflag := posix_mq.O_WRONLY | posix_mq.O_CREAT
-	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
+	mq, err := posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
+		Name:  "posix_mq_example_simple",
+		Flags: posix_mq.O_WRONLY | posix_mq.O_CREAT,
+		Mode:  0666,
+	})
 	if err != nil {
-		fmt.Printf("Sender: error initializing %s", err)
+		fmt.Printf("Sender: error initializing: %s", err)
 		c <- 1
 	}
 	defer func() {
@@ -53,8 +56,11 @@ func sender(c chan int) {
 }
 
 func receiver(c chan int) {
-	oflag := posix_mq.O_RDONLY
-	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
+	mq, err := posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
+		Name:  "posix_mq_example_simple",
+		Flags: posix_mq.O_RDONLY,
+		Mode:  0666,
+	})
 	if err != nil {
 		fmt.Printf("Receiver: error initializing %s", err)
 		c <- 1
@@ -87,6 +93,6 @@ func receiver(c chan int) {
 
 func closeQueue(mq *posix_mq.MessageQueue) {
 	if err := mq.Unlink(); err != nil {
-		log.Println(err)
+		log.Printf("closeQueue error: %s", err)
 	}
 }

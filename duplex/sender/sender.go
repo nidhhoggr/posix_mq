@@ -7,58 +7,65 @@ import (
 	"time"
 )
 
-var (
+type MqSender struct {
 	mqSend *posix_mq.MessageQueue
 	mqResp *posix_mq.MessageQueue
-)
-
-func New(mqFile string, mqDir string, owner posix_mq.Ownership) error {
-	sender, err := openQueue(mqFile+"_send", mqDir, owner)
-	if err != nil {
-		return err
-	}
-	mqSend = sender
-
-	responder, err := openQueue(mqFile+"_resp", mqDir, owner)
-	mqResp = responder
-
-	return err
 }
 
-func openQueue(mqFile string, mqDir string, owner posix_mq.Ownership) (*posix_mq.MessageQueue, error) {
-	oflag := posix_mq.O_RDWR
+func New(config posix_mq.QueueConfig, owner *posix_mq.Ownership) (*MqSender, error) {
+	sender, err := openQueue(config, owner, "send")
+	if err != nil {
+		return nil, err
+	}
 
+	responder, err := openQueue(config, owner, "resp")
+
+	mqs := MqSender{
+		sender,
+		responder,
+	}
+
+	return &mqs, err
+}
+
+func openQueue(config posix_mq.QueueConfig, owner *posix_mq.Ownership, postfix string) (*posix_mq.MessageQueue, error) {
+	if config.Flags == 0 {
+		config.Flags = posix_mq.O_RDWR
+	}
+	config.Name = fmt.Sprintf("%s_%s", config.Name, postfix)
 	var (
 		messageQueue *posix_mq.MessageQueue
 		err          error
 	)
-	if owner.IsValid() {
-		messageQueue, err = posix_mq.NewMessageQueue("/"+mqFile, oflag, 0660, nil)
+	if owner != nil && owner.IsValid() {
+		config.Mode = 0660
+		messageQueue, err = posix_mq.NewMessageQueue(&config)
 
 	} else {
-		messageQueue, err = posix_mq.NewMessageQueue("/"+mqFile, oflag, 0666, nil)
+		config.Mode = 0666
+		messageQueue, err = posix_mq.NewMessageQueue(&config)
 	}
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not create message queue %s: %-v", "/"+mqFile, err))
+		return nil, errors.New(fmt.Sprintf("Could not create message queue %s: %-v", config.GetFile(), err))
 	}
 	return messageQueue, nil
 }
 
-func Send(data []byte, priority uint) error {
-	return mqSend.Send(data, priority)
+func (mqs *MqSender) Send(data []byte, priority uint) error {
+	return mqs.mqSend.Send(data, priority)
 }
 
-func WaitForResponse(duration time.Duration) ([]byte, uint, error) {
-	return mqResp.TimedReceive(time.Now().Local().Add(duration))
+func (mqs *MqSender) WaitForResponse(duration time.Duration) ([]byte, uint, error) {
+	return mqs.mqResp.TimedReceive(time.Now().Local().Add(duration))
 }
 
 func closeQueue(mq *posix_mq.MessageQueue) error {
 	return mq.Close()
 }
 
-func Close() error {
-	if err := closeQueue(mqSend); err != nil {
+func (mqs *MqSender) Close() error {
+	if err := closeQueue(mqs.mqSend); err != nil {
 		return err
 	}
-	return closeQueue(mqResp)
+	return closeQueue(mqs.mqResp)
 }

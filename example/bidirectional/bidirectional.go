@@ -114,9 +114,11 @@ func openQueues() error {
 }
 
 func openQueue(postfix string) (*posix_mq.MessageQueue, error) {
-	oflag := posix_mq.O_RDWR | posix_mq.O_CREAT
-	posixMQFile := "posix_mq_example_" + postfix
-	return posix_mq.NewMessageQueue("/"+posixMQFile, oflag, 0666, nil)
+	return posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
+		Name:  "posix_mq_example_" + postfix,
+		Flags: posix_mq.O_RDWR | posix_mq.O_CREAT,
+		Mode:  0666,
+	})
 }
 
 func closeQueue(mq *posix_mq.MessageQueue) {

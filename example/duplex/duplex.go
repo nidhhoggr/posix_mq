@@ -25,13 +25,17 @@ func main() {
 }
 
 func responder(c chan int) {
-	flags := posix_mq.O_RDWR | posix_mq.O_CREAT
-	if err := pmq_responder.New("posix_mq_example_duplex", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{}, flags); err != nil {
+	mqr, err := pmq_responder.New(posix_mq.QueueConfig{
+		Name:  "posix_mq_example_duplex",
+		Flags: posix_mq.O_RDWR | posix_mq.O_CREAT,
+	}, nil)
+
+	if err != nil {
 		log.Printf("Responder: could not initialize: %s", err)
 		c <- 1
 	}
 	defer func() {
-		pmq_responder.Close()
+		mqr.Close()
 		fmt.Println("Responder: finished and unlinked")
 		c <- 0
 	}()
@@ -41,7 +45,7 @@ func responder(c chan int) {
 		time.Sleep(1 * time.Second)
 		count++
 
-		if err := pmq_responder.HandleRequest(handleMessage); err != nil {
+		if err := mqr.HandleRequest(handleMessage); err != nil {
 			fmt.Printf("Responder: error handling request: %s\n", err)
 			continue
 		}
@@ -55,12 +59,16 @@ func responder(c chan int) {
 }
 
 func sender(c chan int) {
-	if err := pmq_sender.New("posix_mq_example_duplex", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{}); err != nil {
+	mqs, err := pmq_sender.New(posix_mq.QueueConfig{
+		Name: "posix_mq_example_duplex",
+	}, nil)
+
+	if err != nil {
 		log.Printf("Sender: could not initialize: %s", err)
 		c <- 1
 	}
 	defer func() {
-		pmq_sender.Close()
+		mqs.Close()
 		fmt.Println("Sender: finished and closed")
 		c <- 0
 	}()
@@ -69,14 +77,14 @@ func sender(c chan int) {
 	for {
 		count++
 		request := fmt.Sprintf("Hello, World : %d\n", count)
-		if err := pmq_sender.Send([]byte(request), 0); err != nil {
+		if err := mqs.Send([]byte(request), 0); err != nil {
 			fmt.Printf("Sender: error sending request: %s\n", err)
 			continue
 		}
 
 		fmt.Printf("Sender: sent a new request: %s", request)
 
-		msg, _, err := pmq_sender.WaitForResponse(time.Second)
+		msg, _, err := mqs.WaitForResponse(time.Second)
 
 		if err != nil {
 			fmt.Printf("Sender: error getting response: %s\n", err)

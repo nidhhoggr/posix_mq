@@ -10,59 +10,68 @@ import (
 
 type ResponderCallback func(msq []byte) (processed []byte, err error)
 
-var (
+type MqResponder struct {
 	mqSend *posix_mq.MessageQueue
 	mqResp *posix_mq.MessageQueue
-)
-
-func New(mqFile string, mqDir string, owner posix_mq.Ownership, flags int) error {
-	sender, err := openQueue(mqFile+"_send", mqDir, owner, flags)
-	if err != nil {
-		return err
-	}
-	mqSend = sender
-
-	responder, err := openQueue(mqFile+"_resp", mqDir, owner, flags)
-	mqResp = responder
-
-	return err
 }
 
-func openQueue(mqFile string, mqDir string, owner posix_mq.Ownership, flags int) (*posix_mq.MessageQueue, error) {
-	//mq_open checks that the name starts with a slash (/), giving the EINVAL error if it does not
-	if flags == 0 {
-		flags = posix_mq.O_RDWR | posix_mq.O_CREAT | posix_mq.O_NONBLOCK
+func New(config posix_mq.QueueConfig, owner *posix_mq.Ownership) (*MqResponder, error) {
+
+	sender, err := openQueue(config, owner, "send")
+	if err != nil {
+		return nil, err
 	}
+
+	responder, err := openQueue(config, owner, "resp")
+
+	mqr := MqResponder{
+		sender,
+		responder,
+	}
+
+	return &mqr, err
+}
+
+func openQueue(config posix_mq.QueueConfig, owner *posix_mq.Ownership, postfix string) (*posix_mq.MessageQueue, error) {
+
+	if config.Flags == 0 {
+		config.Flags = posix_mq.O_RDWR | posix_mq.O_CREAT | posix_mq.O_NONBLOCK
+	}
+	config.Name = fmt.Sprintf("%s_%s", config.Name, postfix)
 	var (
 		messageQueue *posix_mq.MessageQueue
 		err          error
 	)
-	if owner.IsValid() {
-		messageQueue, err = posix_mq.NewMessageQueue("/"+mqFile, flags, 0660, nil)
+	if owner != nil && owner.IsValid() {
+		config.Mode = 0660
+		messageQueue, err = posix_mq.NewMessageQueue(&config)
 
 	} else {
-		messageQueue, err = posix_mq.NewMessageQueue("/"+mqFile, flags, 0666, nil)
+		config.Mode = 0666
+		messageQueue, err = posix_mq.NewMessageQueue(&config)
 	}
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not create message queue %s: %-v", "/"+mqFile, err))
+		return nil, errors.New(fmt.Sprintf("Could not create message queue %s: %-v", config.GetFile(), err))
 	}
-	err = owner.ApplyPermissions(mqDir + mqFile)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not apply permissions %s: %-v", mqDir+mqFile, err))
+	if owner != nil {
+		err = owner.ApplyPermissions(&config)
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("Could not apply permissions %s: %-v", config.GetFile(), err))
+		}
 	}
 	return messageQueue, nil
 }
 
-func HandleRequest(msgHandler ResponderCallback) error {
-	return handleRequest(msgHandler, 0)
+func (mqr *MqResponder) HandleRequest(msgHandler ResponderCallback) error {
+	return mqr.handleRequest(msgHandler, 0)
 }
 
-func HandleRequestWithLag(msgHandler ResponderCallback, lag int) error {
-	return handleRequest(msgHandler, lag)
+func (mqr *MqResponder) HandleRequestWithLag(msgHandler ResponderCallback, lag int) error {
+	return mqr.handleRequest(msgHandler, lag)
 }
 
-func handleRequest(msgHandler ResponderCallback, lag int) error {
-	msg, _, err := mqSend.Receive()
+func (mqr *MqResponder) handleRequest(msgHandler ResponderCallback, lag int) error {
+	msg, _, err := mqr.mqSend.Receive()
 	if err != nil {
 		//EAGAIN simply means the queue is empty when O_NONBLOCK is set
 		if errors.Is(err, syscall.EAGAIN) {
@@ -79,7 +88,7 @@ func handleRequest(msgHandler ResponderCallback, lag int) error {
 		time.Sleep(time.Duration(lag) * time.Second)
 	}
 
-	err = mqResp.Send(processed, 0)
+	err = mqr.mqResp.Send(processed, 0)
 	return err
 }
 
@@ -87,9 +96,9 @@ func closeQueue(mq *posix_mq.MessageQueue) error {
 	return mq.Unlink()
 }
 
-func Close() error {
-	if err := closeQueue(mqSend); err != nil {
+func (mqr *MqResponder) Close() error {
+	if err := closeQueue(mqr.mqSend); err != nil {
 		return err
 	}
-	return closeQueue(mqResp)
+	return closeQueue(mqr.mqResp)
 }

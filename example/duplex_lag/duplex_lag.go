@@ -25,13 +25,17 @@ func main() {
 }
 
 func responder(c chan int) {
-	flags := posix_mq.O_RDWR | posix_mq.O_CREAT
-	if err := pmq_responder.New("posix_mq_example_duplex_lag", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{}, flags); err != nil {
+	mqr, err := pmq_responder.New(posix_mq.QueueConfig{
+		Name:  "posix_mq_example_duplex_lag",
+		Flags: posix_mq.O_RDWR | posix_mq.O_CREAT,
+	}, nil)
+
+	if err != nil {
 		log.Printf("Responder: could not initialize: %s", err)
 		c <- 1
 	}
 	defer func() {
-		pmq_responder.Close()
+		mqr.Close()
 		fmt.Println("Responder: finished and unlinked")
 		c <- 0
 	}()
@@ -42,9 +46,9 @@ func responder(c chan int) {
 		count++
 		var err error
 		if count > 5 {
-			err = pmq_responder.HandleRequestWithLag(handleMessage, count-4)
+			err = mqr.HandleRequestWithLag(handleMessage, count-4)
 		} else {
-			err = pmq_responder.HandleRequest(handleMessage)
+			err = mqr.HandleRequest(handleMessage)
 		}
 
 		if err != nil {
@@ -61,12 +65,15 @@ func responder(c chan int) {
 }
 
 func sender(c chan int) {
-	if err := pmq_sender.New("posix_mq_example_duplex_lag", posix_mq.POSIX_MQ_DIR, posix_mq.Ownership{}); err != nil {
+	mqs, err := pmq_sender.New(posix_mq.QueueConfig{
+		Name: "posix_mq_example_duplex_lag",
+	}, nil)
+	if err != nil {
 		log.Printf("Sender: could not initialize: %s", err)
 		c <- 1
 	}
 	defer func() {
-		pmq_sender.Close()
+		mqs.Close()
 		fmt.Println("Sender: finished and closed")
 		c <- 0
 	}()
@@ -75,7 +82,7 @@ func sender(c chan int) {
 	for {
 		count++
 		request := fmt.Sprintf("Hello, World : %d\n", count)
-		go requestResponse(request, ch)
+		go requestResponse(mqs, request, ch)
 
 		if count >= maxSendTickNum {
 			break
@@ -95,14 +102,14 @@ func sender(c chan int) {
 	}
 }
 
-func requestResponse(msg string, c chan pmqResponse) {
-	if err := pmq_sender.Send([]byte(msg), 0); err != nil {
+func requestResponse(mqs *pmq_sender.MqSender, msg string, c chan pmqResponse) {
+	if err := mqs.Send([]byte(msg), 0); err != nil {
 		c <- pmqResponse{fmt.Sprintf("%s", err), false}
 		return
 	}
 	fmt.Printf("Sender: sent a new request: %s", msg)
 
-	resp, _, err := pmq_sender.WaitForResponse(time.Second)
+	resp, _, err := mqs.WaitForResponse(time.Second)
 
 	if err != nil {
 		c <- pmqResponse{fmt.Sprintf("%s", err), false}
