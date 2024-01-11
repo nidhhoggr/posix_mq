@@ -86,26 +86,26 @@ func mq_open(name string, oflag int, mode int, attr *MessageQueueAttribute) (int
 	return int(h), nil
 }
 
-func mq_send(h int, data []byte, priority uint) (int, error) {
+func mq_send(h int, data []byte, priority uint) error {
 	byteStr := *(*string)(unsafe.Pointer(&data))
 	rv, err := C.mq_send(C.int(h), C.CString(byteStr), C.size_t(len(data)), C.uint(priority))
 	if rv == -1 {
-		return 0, err
+		return err
 	}
 
-	return int(rv), nil
+	return nil
 }
 
-func mq_timedsend(h int, data []byte, priority uint, t time.Time) (int, error) {
+func mq_timedsend(h int, data []byte, priority uint, t time.Time) error {
 	timeSpec := timeToTimespec(t)
 
 	byteStr := *(*string)(unsafe.Pointer(&data))
 	rv, err := C.mq_timedsend(C.int(h), C.CString(byteStr), C.size_t(len(data)), C.uint(priority), &timeSpec)
 	if rv == -1 {
-		return 0, err
+		return err
 	}
 
-	return int(rv), nil
+	return nil
 }
 
 func mq_receive(h int, recvBuf *receiveBuffer) ([]byte, uint, error) {
@@ -133,7 +133,7 @@ func mq_timedreceive(h int, recvBuf *receiveBuffer, t time.Time) ([]byte, uint, 
 	return C.GoBytes(unsafe.Pointer(recvBuf.buf), C.int(size)), uint(msgPrio), nil
 }
 
-func mq_notify(h int, sigNo int) (int, error) {
+func mq_notify(h int, sigNo int) error {
 	sigEvent := &C.struct_sigevent{
 		sigev_notify: C.SIGEV_SIGNAL, // posix_mq supports only signal.
 		sigev_signo:  C.int(sigNo),
@@ -141,28 +141,28 @@ func mq_notify(h int, sigNo int) (int, error) {
 
 	rv, err := C.mq_notify(C.int(h), sigEvent)
 	if rv == -1 {
-		return 0, err
+		return err
 	}
 
-	return int(rv), nil
+	return nil
 }
 
-func mq_close(h int) (int, error) {
+func mq_close(h int) error {
 	rv, err := C.mq_close(C.int(h))
 	if rv == -1 {
-		return 0, err
+		return err
 	}
 
-	return int(rv), nil
+	return nil
 }
 
-func mq_unlink(name string) (int, error) {
+func mq_unlink(name string) error {
 	rv, err := C.mq_unlink(C.CString(name))
 	if rv == -1 {
-		return 0, err
+		return err
 	}
 
-	return int(rv), nil
+	return nil
 }
 
 func mq_getattr(h int) (*MessageQueueAttribute, error) {
