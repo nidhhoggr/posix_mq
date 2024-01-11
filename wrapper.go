@@ -79,7 +79,7 @@ func mq_open(name string, oflag int, mode int, attr *MessageQueueAttribute) (int
 	}
 
 	h, err := C.mq_open4(C.CString(name), C.int(oflag), C.int(mode), cAttr)
-	if err != nil {
+	if h == -1 {
 		return 0, err
 	}
 
@@ -89,7 +89,11 @@ func mq_open(name string, oflag int, mode int, attr *MessageQueueAttribute) (int
 func mq_send(h int, data []byte, priority uint) (int, error) {
 	byteStr := *(*string)(unsafe.Pointer(&data))
 	rv, err := C.mq_send(C.int(h), C.CString(byteStr), C.size_t(len(data)), C.uint(priority))
-	return int(rv), err
+	if rv == -1 {
+		return 0, err
+	}
+
+	return int(rv), nil
 }
 
 func mq_timedsend(h int, data []byte, priority uint, t time.Time) (int, error) {
@@ -97,14 +101,18 @@ func mq_timedsend(h int, data []byte, priority uint, t time.Time) (int, error) {
 
 	byteStr := *(*string)(unsafe.Pointer(&data))
 	rv, err := C.mq_timedsend(C.int(h), C.CString(byteStr), C.size_t(len(data)), C.uint(priority), &timeSpec)
-	return int(rv), err
+	if rv == -1 {
+		return 0, err
+	}
+
+	return int(rv), nil
 }
 
 func mq_receive(h int, recvBuf *receiveBuffer) ([]byte, uint, error) {
 	var msgPrio C.uint
 
 	size, err := C.mq_receive(C.int(h), recvBuf.buf, recvBuf.size, &msgPrio)
-	if err != nil {
+	if size == -1 {
 		return nil, 0, err
 	}
 
@@ -118,7 +126,7 @@ func mq_timedreceive(h int, recvBuf *receiveBuffer, t time.Time) ([]byte, uint, 
 	)
 
 	size, err := C.mq_timedreceive(C.int(h), recvBuf.buf, recvBuf.size, &msgPrio, &timeSpec)
-	if err != nil {
+	if size == -1 {
 		return nil, 0, err
 	}
 
@@ -132,31 +140,44 @@ func mq_notify(h int, sigNo int) (int, error) {
 	}
 
 	rv, err := C.mq_notify(C.int(h), sigEvent)
-	return int(rv), err
+	if rv == -1 {
+		return 0, err
+	}
+
+	return int(rv), nil
 }
 
 func mq_close(h int) (int, error) {
 	rv, err := C.mq_close(C.int(h))
-	return int(rv), err
+	if rv == -1 {
+		return 0, err
+	}
+
+	return int(rv), nil
 }
 
 func mq_unlink(name string) (int, error) {
 	rv, err := C.mq_unlink(C.CString(name))
-	return int(rv), err
+	if rv == -1 {
+		return 0, err
+	}
+
+	return int(rv), nil
 }
 
 func mq_getattr(h int) (*MessageQueueAttribute, error) {
 	var cAttr C.struct_mq_attr
-	ret := C.mq_getattr(C.int(h), &cAttr)
+	rv, err := C.mq_getattr(C.int(h), &cAttr)
+	if rv == -1 {
+		return nil, err
+	}
+
 	mqa := &MessageQueueAttribute{
 		Flags:   int(cAttr.mq_flags),
 		MaxMsg:  int(cAttr.mq_maxmsg),
 		MsgSize: int(cAttr.mq_msgsize),
 		MsgCnt:  int(cAttr.mq_curmsgs),
 	}
-	var err error
-	if ret != 0 {
-		err = fmt.Errorf("got non-zero return value: %d", ret)
-	}
-	return mqa, err
+
+	return mqa, nil
 }
