@@ -62,8 +62,9 @@ func (mq *MessageQueue) Send(data []byte, priority uint) error {
 }
 
 // TimedSend sends message to the message queue with a ceiling on the time for which the call will block.
-func (mq *MessageQueue) TimedSend(data []byte, priority uint, t time.Time) error {
-	return mq_timedsend(mq.handler, data, priority, t)
+func (mq *MessageQueue) TimedSend(data []byte, priority uint, duration time.Duration) error {
+	tDiff := time.Now().Local().Add(duration)
+	return mq_timedsend(mq.handler, data, priority, tDiff)
 }
 
 // Receive receives message from the message queue.
@@ -72,12 +73,11 @@ func (mq *MessageQueue) Receive() ([]byte, uint, error) {
 }
 
 // TimedReceive receives message from the message queue with a ceiling on the time for which the call will block.
-func (mq *MessageQueue) TimedReceive(t time.Time) ([]byte, uint, error) {
-	return mq_timedreceive(mq.handler, mq.recvBuf, t)
+func (mq *MessageQueue) TimedReceive(duration time.Duration) ([]byte, uint, error) {
+	tDiff := time.Now().Local().Add(duration)
+	return mq_timedreceive(mq.handler, mq.recvBuf, tDiff)
 }
 
-// FIXME Don't work because of signal portability.
-// Notify set signal notification to handle new messages.
 func (mq *MessageQueue) Notify(sigNo syscall.Signal) error {
 	return mq_notify(mq.handler, int(sigNo))
 }
@@ -96,6 +96,7 @@ func (mq *MessageQueue) Unlink() error {
 	return mq_unlink(mq.name)
 }
 
+// GetFile gets the file on the OS where the queues are stored
 func (config *QueueConfig) GetFile() string {
 	if len(config.Dir) == 0 {
 		return POSIX_MQ_DIR + config.Name
@@ -104,6 +105,7 @@ func (config *QueueConfig) GetFile() string {
 	}
 }
 
+// Count gets the number of queued messages
 func (mq *MessageQueue) Count() (int, error) {
 	mqa, err := mq_getattr(mq.handler)
 	return mqa.MsgCnt, err

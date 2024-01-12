@@ -2,9 +2,13 @@ package posix_mq
 
 import (
 	"os"
+	"os/signal"
 	"syscall"
 	"testing"
+	"time"
 )
+
+const wired = "Narwhals and ice cream"
 
 func SampleMessageQueue(t *testing.T) *MessageQueue {
 	config := QueueConfig{
@@ -24,8 +28,6 @@ func SampleMessageQueue(t *testing.T) *MessageQueue {
 
 func Test_SendMessage(t *testing.T) {
 	mq := SampleMessageQueue(t)
-
-	wired := "Narwhals and ice cream"
 
 	err := mq.Send([]byte(wired), 0)
 
@@ -47,8 +49,6 @@ func Test_SendMessage(t *testing.T) {
 func Test_QueuePriority(t *testing.T) {
 	mq := SampleMessageQueue(t)
 
-	wired := "Narwhals and ice cream"
-
 	err := mq.Send([]byte(wired), 3)
 
 	if err != nil {
@@ -68,8 +68,6 @@ func Test_QueuePriority(t *testing.T) {
 
 func Test_QueueCount(t *testing.T) {
 	mq := SampleMessageQueue(t)
-
-	wired := "Narwhals and ice cream"
 
 	if err := mq.Send([]byte(wired), 0); err != nil {
 		t.Error(err)
@@ -97,6 +95,62 @@ func Test_QueueCount(t *testing.T) {
 
 	if count, _ := mq.Count(); count != 0 {
 		t.Errorf("expected count 0, got: %d", count)
+	}
+}
+
+func Test_Notify(t *testing.T) {
+	mq := SampleMessageQueue(t)
+
+	mq.Notify(syscall.SIGUSR1)
+
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGUSR1)
+	signalsCaught := 0
+	go func(test *testing.T) {
+		for {
+			s := <-sigc
+			switch s {
+			case syscall.SIGUSR1:
+				test.Logf("catched signal: %-v", s)
+
+				response, _, err := mq.Receive()
+
+				if err != nil {
+					test.Error(err)
+				}
+
+				if wired != string(response) {
+					test.Errorf("expected %s, got: %s", wired, response)
+				} else {
+					test.Logf("Sucessfully notified with msg: %s", response)
+					signalsCaught++
+				}
+			default:
+				t.Logf("Caught an unexpected signal: %s", s)
+			}
+			if signalsCaught >= 2 {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}(t)
+
+	if err := mq.TimedSend([]byte(wired), 0, time.Second*2); err != nil {
+		t.Error(err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	mq.Notify(syscall.SIGUSR1)
+
+	if err := mq.TimedSend([]byte(wired), 0, time.Second*2); err != nil {
+		t.Error(err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	if signalsCaught != 2 {
+		t.Errorf("expected catching 2 notifications, got: %d", signalsCaught)
 	}
 }
 

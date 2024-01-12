@@ -56,7 +56,7 @@ func (mqs *MqSender) Send(data []byte, priority uint) error {
 }
 
 func (mqs *MqSender) WaitForResponse(duration time.Duration) ([]byte, uint, error) {
-	return mqs.mqResp.TimedReceive(time.Now().Local().Add(duration))
+	return mqs.mqResp.TimedReceive(duration)
 }
 
 func closeQueue(mq *posix_mq.MessageQueue) error {

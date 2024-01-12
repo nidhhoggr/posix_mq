@@ -82,7 +82,7 @@ func sender(c chan int) {
 
 		fmt.Println("Sender: sent a new message")
 
-		msg, _, err := mqResp.TimedReceive(time.Now().Local().Add(time.Second * time.Duration(1)))
+		msg, _, err := mqResp.TimedReceive(time.Second * 1)
 
 		if err != nil {
 			fmt.Printf("Sender: error receiving message: %s\n", err)
