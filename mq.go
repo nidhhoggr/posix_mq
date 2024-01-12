@@ -78,6 +78,7 @@ func (mq *MessageQueue) TimedReceive(duration time.Duration) ([]byte, uint, erro
 	return mq_timedreceive(mq.handler, mq.recvBuf, tDiff)
 }
 
+// Notify set signal notification to handle new message
 func (mq *MessageQueue) Notify(sigNo syscall.Signal) error {
 	return mq_notify(mq.handler, int(sigNo))
 }
