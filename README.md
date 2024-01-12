@@ -22,8 +22,11 @@ import (
 const maxSendTickNum = 10
 
 func main() {
-	oflag := posix_mq.O_WRONLY | posix_mq.O_CREAT
-	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
+	mq, err := posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
+		Name:  "posix_mq_example_simple",
+		Flags: posix_mq.O_WRONLY | posix_mq.O_CREAT,
+		Mode:  0666,
+	})
 	if err != nil {
 		log.Fatalf("Sender: error initializing %s", err)
 	}
@@ -63,8 +66,11 @@ import (
 const maxSendTickNum = 10
 
 func main() {
-	oflag := posix_mq.O_RDONLY
-	mq, err := posix_mq.NewMessageQueue("/posix_mq_example", oflag, 0666, nil)
+	mq, err := posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
+		Name:  "posix_mq_example_simple",
+		Flags: posix_mq.O_RDONLY
+		Mode:  0666,
+	})
 	if err != nil {
 		log.Fatalf("Receiver: error initializing %s", err)
 	}
