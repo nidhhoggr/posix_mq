@@ -24,11 +24,14 @@ func main() {
 	go sender(send_c)
 	<-resp_c
 	<-send_c
+	//gives time for deferred functions to complete
+	time.Sleep(2 * time.Second)
 }
 
 func responder(c chan int) {
 	if err := openQueues(); err != nil {
 		c <- 1
+		return
 	}
 	defer func() {
 		fmt.Println("Responder: finished")
@@ -64,6 +67,7 @@ func responder(c chan int) {
 func sender(c chan int) {
 	if err := openQueues(); err != nil {
 		c <- 1
+		return
 	}
 	defer func() {
 		closeQueue(mqSend)

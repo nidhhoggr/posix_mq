@@ -1,6 +1,7 @@
 package posix_mq
 
 import (
+	"os"
 	"syscall"
 	"time"
 )
@@ -106,8 +107,26 @@ func (config *QueueConfig) GetFile() string {
 	}
 }
 
+// GetAttr gets the queue attributes
+func (mq *MessageQueue) GetAttr() (*MessageQueueAttribute, error) {
+	return mq_getattr(mq.handler)
+}
+
 // Count gets the number of queued messages
 func (mq *MessageQueue) Count() (int, error) {
-	mqa, err := mq_getattr(mq.handler)
+	mqa, err := mq.GetAttr()
 	return mqa.MsgCnt, err
+}
+
+// ForceRemoveQueue deletes the posix queue by name
+// If one or more processes have the message queue open when mq_unlink() is called,
+// destruction of the message queue shall be postponed until all references to the message queue have been closed.
+func ForceRemoveQueue(name string) error {
+	err := mq_unlink(name)
+	//If the queue has already been closed mq_unlink will return EINVAL leaving the queue file intact
+	if err.(syscall.Errno) == syscall.EINVAL {
+		return os.Remove(POSIX_MQ_DIR + name)
+	} else {
+		return err
+	}
 }

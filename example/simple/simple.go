@@ -19,6 +19,8 @@ func main() {
 	go receiver(recv_c)
 	<-recv_c
 	<-send_c
+	//gives time for deferred functions to complete
+	time.Sleep(2 * time.Second)
 }
 
 func sender(c chan int) {
@@ -27,14 +29,15 @@ func sender(c chan int) {
 		Flags: posix_mq.O_WRONLY | posix_mq.O_CREAT,
 		Mode:  0666,
 	})
-	if err != nil {
-		fmt.Printf("Sender: error initializing: %s", err)
-		c <- 1
-	}
 	defer func() {
 		fmt.Println("Sender: finished")
 		c <- 0
 	}()
+	if err != nil {
+		fmt.Printf("Sender: error initializing: %s", err)
+		c <- 1
+		return
+	}
 
 	count := 0
 	for {
@@ -61,15 +64,16 @@ func receiver(c chan int) {
 		Flags: posix_mq.O_RDONLY,
 		Mode:  0666,
 	})
-	if err != nil {
-		fmt.Printf("Receiver: error initializing %s", err)
-		c <- 1
-	}
 	defer func() {
 		closeQueue(mq)
 		fmt.Println("Receiver: finished")
 		c <- 0
 	}()
+	if err != nil {
+		fmt.Printf("Receiver: error initializing %s", err)
+		c <- 1
+		return
+	}
 
 	fmt.Println("Receiver: Start receiving messages")
 
