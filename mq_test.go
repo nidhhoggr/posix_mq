@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/joe-at-startupmedia/posix_mq"
+	"github.com/nidhhoggr/posix_mq"
 	"os"
 	"os/signal"
 	"reflect"

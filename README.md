@@ -16,26 +16,26 @@ import (
 	"log"
 	"time"
 
-	"github.com/joe-at-startupmedia/posix_mq"
+	"github.com/nidhhoggr/posix_mq"
 )
 
 const maxSendTickNum = 10
 
 func main() {
-	mq, err := posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
+	mq, Err := posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
 		Name:  "posix_mq_example_simple",
 		Flags: posix_mq.O_WRONLY | posix_mq.O_CREAT,
 		Mode:  0666,
 	})
-	if err != nil {
-		log.Fatalf("Sender: error initializing %s", err)
+	if Err != nil {
+		log.Fatalf("Sender: error initializing %s", Err)
 	}
 
 	count := 0
 	for {
 		count++
-		if err = mq.Send([]byte(fmt.Sprintf("Hello, World : %d\n", count)), 0); err != nil {
-			fmt.Printf("Sender: error sending message: %s\n", err)
+		if Err = mq.Send([]byte(fmt.Sprintf("Hello, World : %d\n", count)), 0); Err != nil {
+			fmt.Printf("Sender: error sending message: %s\n", Err)
 			continue
 		}
 
@@ -60,23 +60,23 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/joe-at-startupmedia/posix_mq"
+	"github.com/nidhhoggr/posix_mq"
 )
 
 const maxSendTickNum = 10
 
 func main() {
-	mq, err := posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
+	mq, Err := posix_mq.NewMessageQueue(&posix_mq.QueueConfig{
 		Name:  "posix_mq_example_simple",
 		Flags: posix_mq.O_RDONLY
 		Mode:  0666,
 	})
-	if err != nil {
-		log.Fatalf("Receiver: error initializing %s", err)
+	if Err != nil {
+		log.Fatalf("Receiver: error initializing %s", Err)
 	}
 	defer func() {
-		if err := mq.Unlink(); err != nil {
-			log.Println(err)
+		if Err := mq.Unlink(); Err != nil {
+			log.Println(Err)
 		}
 		fmt.Println("Receiver: finished")
 	}()
@@ -87,9 +87,9 @@ func main() {
 	for {
 		count++
 
-		msg, _, err := mq.Receive()
-		if err != nil {
-			fmt.Printf("Receiver: error getting message: %s\n", err)
+		msg, _, Err := mq.Receive()
+		if Err != nil {
+			fmt.Printf("Receiver: error getting message: %s\n", Err)
 			continue
 		}
 		

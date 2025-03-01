@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const Version string = "0.2.1"
+
 // Represents the message queue
 type MessageQueue struct {
 	handler int
