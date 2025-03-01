@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const Version string = "0.2.1"
+const Version string = "0.2.2"
 
 // Represents the message queue
 type MessageQueue struct {
